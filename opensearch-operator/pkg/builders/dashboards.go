@@ -120,7 +120,12 @@ func NewDashboardsDeploymentForCR(cr *opsterv1.OpenSearchCluster, volumes []core
 		},
 	}
 
-	mainCommand := helpers.BuildMainCommandOSD("./bin/opensearch-dashboards-plugin", cr.Spec.Dashboards.PluginsList, "./opensearch-dashboards-docker-entrypoint.sh")
+	removePluginList := []string{}
+	// Remove Security Plugin when Security is disabled
+	if cr.Spec.Security.Disable {
+		removePluginList = []string{"securityDashboards"}
+	}
+	mainCommand := helpers.BuildMainCommandOSD("./bin/opensearch-dashboards-plugin", cr.Spec.Dashboards.PluginsList, removePluginList, "./opensearch-dashboards-docker-entrypoint.sh")
 
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

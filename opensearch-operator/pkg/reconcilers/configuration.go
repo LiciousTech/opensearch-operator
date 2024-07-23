@@ -60,13 +60,15 @@ func (r *ConfigurationReconciler) Reconcile() (ctrl.Result, error) {
 
 	if len(r.reconcilerContext.OpenSearchConfig) > 0 {
 		// Add some default config for the security plugin
-		r.reconcilerContext.AddConfig("plugins.security.audit.type", "internal_opensearch")
-		r.reconcilerContext.AddConfig("plugins.security.enable_snapshot_restore_privilege", "true")
-		r.reconcilerContext.AddConfig("plugins.security.check_snapshot_restore_write_privileges", "true")
-		r.reconcilerContext.AddConfig("plugins.security.restapi.roles_enabled", `["all_access", "security_rest_api_access"]`)
-		r.reconcilerContext.AddConfig("plugins.security.system_indices.enabled", "true")
-		r.reconcilerContext.AddConfig("plugins.security.system_indices.indices", string(systemIndices))
-
+		// Only of Security Plugin is not disabled
+		if !r.instance.Spec.Security.Disable {
+			r.reconcilerContext.AddConfig("plugins.security.audit.type", "internal_opensearch")
+			r.reconcilerContext.AddConfig("plugins.security.enable_snapshot_restore_privilege", "true")
+			r.reconcilerContext.AddConfig("plugins.security.check_snapshot_restore_write_privileges", "true")
+			r.reconcilerContext.AddConfig("plugins.security.restapi.roles_enabled", `["all_access", "security_rest_api_access"]`)
+			r.reconcilerContext.AddConfig("plugins.security.system_indices.enabled", "true")
+			r.reconcilerContext.AddConfig("plugins.security.system_indices.indices", string(systemIndices))
+		}
 	}
 
 	var sb strings.Builder

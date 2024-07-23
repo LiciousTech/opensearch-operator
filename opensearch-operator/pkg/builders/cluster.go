@@ -279,8 +279,9 @@ func NewSTSForNodePool(
 
 	// Because the http endpoint requires auth we need to do it as a curl script
 	httpPort := PortForCluster(cr)
+	portScheme := SchemeForCluster(cr)
 
-	curlCmd := "curl -k -u \"$(cat /mnt/admin-credentials/username):$(cat /mnt/admin-credentials/password)\" --silent --fail https://localhost:" + fmt.Sprint(httpPort)
+	curlCmd := "curl -k -u \"$(cat /mnt/admin-credentials/username):$(cat /mnt/admin-credentials/password)\" --silent --fail " + fmt.Sprint(portScheme) + "://localhost:" + fmt.Sprint(httpPort)
 	readinessProbe := corev1.Probe{
 		InitialDelaySeconds: readinessProbeInitialDelaySeconds,
 		PeriodSeconds:       readinessProbePeriodSeconds,
@@ -455,7 +456,7 @@ func NewSTSForNodePool(
 			Selector: &metav1.LabelSelector{
 				MatchLabels: matchLabels,
 			},
-			PodManagementPolicy: appsv1.OrderedReadyPodManagement,
+			PodManagementPolicy: node.PodManagementPolicy,
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
 				Type: appsv1.OnDeleteStatefulSetStrategyType,
 			},
@@ -931,6 +932,16 @@ func NewBootstrapPod(
 	return pod
 }
 
+func SchemeForCluster(cr *opsterv1.OpenSearchCluster) string {
+
+	if cr.Spec.Security.Disable {
+		return fmt.Sprintf("http")
+	}
+
+	return fmt.Sprintf("https")
+
+}
+
 func PortForCluster(cr *opsterv1.OpenSearchCluster) int32 {
 	httpPort := int32(9200)
 	if cr.Spec.General.HttpPort > 0 {
@@ -940,8 +951,9 @@ func PortForCluster(cr *opsterv1.OpenSearchCluster) int32 {
 }
 
 func URLForCluster(cr *opsterv1.OpenSearchCluster) string {
+	httpScheme := SchemeForCluster(cr)
 	httpPort := PortForCluster(cr)
-	return fmt.Sprintf("https://%s.svc.%s:%d", DnsOfService(cr), helpers.ClusterDnsBase(), httpPort)
+	return fmt.Sprintf("%s://%s.svc.%s:%d", httpScheme, DnsOfService(cr), helpers.ClusterDnsBase(), httpPort)
 }
 
 func PasswordSecret(cr *opsterv1.OpenSearchCluster, username, password string) *corev1.Secret {

@@ -56,6 +56,13 @@ const (
 )
 
 func (r *TLSReconciler) Reconcile() (ctrl.Result, error) {
+
+	if r.instance.Spec.Security.Disable {
+		r.logger.Info("Security Plugin is disabled. Adding plugins.security.disabled=true to config")
+		r.reconcilerContext.AddConfig("plugins.security.disabled", "true")
+		return ctrl.Result{}, nil
+	}
+
 	if r.instance.Spec.Security == nil || r.instance.Spec.Security.Tls == nil {
 		r.logger.Info("No security specified. Not doing anything")
 		return ctrl.Result{}, nil
@@ -535,12 +542,14 @@ func (r *TLSReconciler) handleHttp() error {
 			mount("http", "key", corev1.TLSPrivateKeyKey, tlsConfig.TlsCertificateConfig.Secret.Name, r.reconcilerContext)
 			mount("http", "cert", corev1.TLSCertKey, tlsConfig.TlsCertificateConfig.Secret.Name, r.reconcilerContext)
 		}
+
 	}
 	// Extend opensearch.yml
 	r.reconcilerContext.AddConfig("plugins.security.ssl.http.enabled", "true")
 	r.reconcilerContext.AddConfig("plugins.security.ssl.http.pemcert_filepath", fmt.Sprintf("tls-http/%s", corev1.TLSCertKey))
 	r.reconcilerContext.AddConfig("plugins.security.ssl.http.pemkey_filepath", fmt.Sprintf("tls-http/%s", corev1.TLSPrivateKeyKey))
 	r.reconcilerContext.AddConfig("plugins.security.ssl.http.pemtrustedcas_filepath", fmt.Sprintf("tls-http/%s", CaCertKey))
+
 	return nil
 }
 

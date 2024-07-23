@@ -88,6 +88,11 @@ func NewSecurityconfigReconciler(
 }
 
 func (r *SecurityconfigReconciler) Reconcile() (ctrl.Result, error) {
+	// Return if Security Plugin is disabled
+	if r.instance.Spec.Security.Disable {
+		return ctrl.Result{}, nil
+	}
+
 	if r.instance.Spec.Security == nil {
 		return ctrl.Result{}, nil
 	}
